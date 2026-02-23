@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package storage.v1;
+
+option go_package = "OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1;storagev1";
+
+service StorageService {
+  rpc CreateBucket (CreateBucketRequest) returns (CreateBucketResponse);
+  rpc UploadObject (UploadObjectRequest) returns (UploadObjectResponse);
+  rpc GetDownloadURL (GetDownloadURLRequest) returns (GetDownloadURLResponse);
+}
+
+message CreateBucketRequest {
+  string name = 1;
+}
+
+message CreateBucketResponse {}
+
+message UploadObjectRequest {
+  string bucket = 1;
+  string name = 2;
+  bytes data = 3;
+}
+
+message UploadObjectResponse {}
+
+message GetDownloadURLRequest {
+  string bucket = 1;
+  string name = 2;
+}
+
+message GetDownloadURLResponse {
+  string url = 1;
+}
