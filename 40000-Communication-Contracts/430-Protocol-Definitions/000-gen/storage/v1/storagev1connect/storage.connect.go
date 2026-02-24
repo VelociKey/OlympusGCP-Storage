@@ -39,6 +39,12 @@ const (
 	// StorageServiceUploadObjectProcedure is the fully-qualified name of the StorageService's
 	// UploadObject RPC.
 	StorageServiceUploadObjectProcedure = "/storage.v1.StorageService/UploadObject"
+	// StorageServiceGetObjectMetadataProcedure is the fully-qualified name of the StorageService's
+	// GetObjectMetadata RPC.
+	StorageServiceGetObjectMetadataProcedure = "/storage.v1.StorageService/GetObjectMetadata"
+	// StorageServiceListObjectsProcedure is the fully-qualified name of the StorageService's
+	// ListObjects RPC.
+	StorageServiceListObjectsProcedure = "/storage.v1.StorageService/ListObjects"
 	// StorageServiceGetDownloadURLProcedure is the fully-qualified name of the StorageService's
 	// GetDownloadURL RPC.
 	StorageServiceGetDownloadURLProcedure = "/storage.v1.StorageService/GetDownloadURL"
@@ -48,6 +54,8 @@ const (
 type StorageServiceClient interface {
 	CreateBucket(context.Context, *connect.Request[v1.CreateBucketRequest]) (*connect.Response[v1.CreateBucketResponse], error)
 	UploadObject(context.Context, *connect.Request[v1.UploadObjectRequest]) (*connect.Response[v1.UploadObjectResponse], error)
+	GetObjectMetadata(context.Context, *connect.Request[v1.GetObjectMetadataRequest]) (*connect.Response[v1.GetObjectMetadataResponse], error)
+	ListObjects(context.Context, *connect.Request[v1.ListObjectsRequest]) (*connect.Response[v1.ListObjectsResponse], error)
 	GetDownloadURL(context.Context, *connect.Request[v1.GetDownloadURLRequest]) (*connect.Response[v1.GetDownloadURLResponse], error)
 }
 
@@ -74,6 +82,18 @@ func NewStorageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(storageServiceMethods.ByName("UploadObject")),
 			connect.WithClientOptions(opts...),
 		),
+		getObjectMetadata: connect.NewClient[v1.GetObjectMetadataRequest, v1.GetObjectMetadataResponse](
+			httpClient,
+			baseURL+StorageServiceGetObjectMetadataProcedure,
+			connect.WithSchema(storageServiceMethods.ByName("GetObjectMetadata")),
+			connect.WithClientOptions(opts...),
+		),
+		listObjects: connect.NewClient[v1.ListObjectsRequest, v1.ListObjectsResponse](
+			httpClient,
+			baseURL+StorageServiceListObjectsProcedure,
+			connect.WithSchema(storageServiceMethods.ByName("ListObjects")),
+			connect.WithClientOptions(opts...),
+		),
 		getDownloadURL: connect.NewClient[v1.GetDownloadURLRequest, v1.GetDownloadURLResponse](
 			httpClient,
 			baseURL+StorageServiceGetDownloadURLProcedure,
@@ -85,9 +105,11 @@ func NewStorageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // storageServiceClient implements StorageServiceClient.
 type storageServiceClient struct {
-	createBucket   *connect.Client[v1.CreateBucketRequest, v1.CreateBucketResponse]
-	uploadObject   *connect.Client[v1.UploadObjectRequest, v1.UploadObjectResponse]
-	getDownloadURL *connect.Client[v1.GetDownloadURLRequest, v1.GetDownloadURLResponse]
+	createBucket      *connect.Client[v1.CreateBucketRequest, v1.CreateBucketResponse]
+	uploadObject      *connect.Client[v1.UploadObjectRequest, v1.UploadObjectResponse]
+	getObjectMetadata *connect.Client[v1.GetObjectMetadataRequest, v1.GetObjectMetadataResponse]
+	listObjects       *connect.Client[v1.ListObjectsRequest, v1.ListObjectsResponse]
+	getDownloadURL    *connect.Client[v1.GetDownloadURLRequest, v1.GetDownloadURLResponse]
 }
 
 // CreateBucket calls storage.v1.StorageService.CreateBucket.
@@ -100,6 +122,16 @@ func (c *storageServiceClient) UploadObject(ctx context.Context, req *connect.Re
 	return c.uploadObject.CallUnary(ctx, req)
 }
 
+// GetObjectMetadata calls storage.v1.StorageService.GetObjectMetadata.
+func (c *storageServiceClient) GetObjectMetadata(ctx context.Context, req *connect.Request[v1.GetObjectMetadataRequest]) (*connect.Response[v1.GetObjectMetadataResponse], error) {
+	return c.getObjectMetadata.CallUnary(ctx, req)
+}
+
+// ListObjects calls storage.v1.StorageService.ListObjects.
+func (c *storageServiceClient) ListObjects(ctx context.Context, req *connect.Request[v1.ListObjectsRequest]) (*connect.Response[v1.ListObjectsResponse], error) {
+	return c.listObjects.CallUnary(ctx, req)
+}
+
 // GetDownloadURL calls storage.v1.StorageService.GetDownloadURL.
 func (c *storageServiceClient) GetDownloadURL(ctx context.Context, req *connect.Request[v1.GetDownloadURLRequest]) (*connect.Response[v1.GetDownloadURLResponse], error) {
 	return c.getDownloadURL.CallUnary(ctx, req)
@@ -109,6 +141,8 @@ func (c *storageServiceClient) GetDownloadURL(ctx context.Context, req *connect.
 type StorageServiceHandler interface {
 	CreateBucket(context.Context, *connect.Request[v1.CreateBucketRequest]) (*connect.Response[v1.CreateBucketResponse], error)
 	UploadObject(context.Context, *connect.Request[v1.UploadObjectRequest]) (*connect.Response[v1.UploadObjectResponse], error)
+	GetObjectMetadata(context.Context, *connect.Request[v1.GetObjectMetadataRequest]) (*connect.Response[v1.GetObjectMetadataResponse], error)
+	ListObjects(context.Context, *connect.Request[v1.ListObjectsRequest]) (*connect.Response[v1.ListObjectsResponse], error)
 	GetDownloadURL(context.Context, *connect.Request[v1.GetDownloadURLRequest]) (*connect.Response[v1.GetDownloadURLResponse], error)
 }
 
@@ -131,6 +165,18 @@ func NewStorageServiceHandler(svc StorageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(storageServiceMethods.ByName("UploadObject")),
 		connect.WithHandlerOptions(opts...),
 	)
+	storageServiceGetObjectMetadataHandler := connect.NewUnaryHandler(
+		StorageServiceGetObjectMetadataProcedure,
+		svc.GetObjectMetadata,
+		connect.WithSchema(storageServiceMethods.ByName("GetObjectMetadata")),
+		connect.WithHandlerOptions(opts...),
+	)
+	storageServiceListObjectsHandler := connect.NewUnaryHandler(
+		StorageServiceListObjectsProcedure,
+		svc.ListObjects,
+		connect.WithSchema(storageServiceMethods.ByName("ListObjects")),
+		connect.WithHandlerOptions(opts...),
+	)
 	storageServiceGetDownloadURLHandler := connect.NewUnaryHandler(
 		StorageServiceGetDownloadURLProcedure,
 		svc.GetDownloadURL,
@@ -143,6 +189,10 @@ func NewStorageServiceHandler(svc StorageServiceHandler, opts ...connect.Handler
 			storageServiceCreateBucketHandler.ServeHTTP(w, r)
 		case StorageServiceUploadObjectProcedure:
 			storageServiceUploadObjectHandler.ServeHTTP(w, r)
+		case StorageServiceGetObjectMetadataProcedure:
+			storageServiceGetObjectMetadataHandler.ServeHTTP(w, r)
+		case StorageServiceListObjectsProcedure:
+			storageServiceListObjectsHandler.ServeHTTP(w, r)
 		case StorageServiceGetDownloadURLProcedure:
 			storageServiceGetDownloadURLHandler.ServeHTTP(w, r)
 		default:
@@ -160,6 +210,14 @@ func (UnimplementedStorageServiceHandler) CreateBucket(context.Context, *connect
 
 func (UnimplementedStorageServiceHandler) UploadObject(context.Context, *connect.Request[v1.UploadObjectRequest]) (*connect.Response[v1.UploadObjectResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("storage.v1.StorageService.UploadObject is not implemented"))
+}
+
+func (UnimplementedStorageServiceHandler) GetObjectMetadata(context.Context, *connect.Request[v1.GetObjectMetadataRequest]) (*connect.Response[v1.GetObjectMetadataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("storage.v1.StorageService.GetObjectMetadata is not implemented"))
+}
+
+func (UnimplementedStorageServiceHandler) ListObjects(context.Context, *connect.Request[v1.ListObjectsRequest]) (*connect.Response[v1.ListObjectsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("storage.v1.StorageService.ListObjects is not implemented"))
 }
 
 func (UnimplementedStorageServiceHandler) GetDownloadURL(context.Context, *connect.Request[v1.GetDownloadURLRequest]) (*connect.Response[v1.GetDownloadURLResponse], error) {

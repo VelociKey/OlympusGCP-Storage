@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	storagev1 "OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1"
@@ -53,7 +55,59 @@ func (s *StorageServer) UploadObject(ctx context.Context, req *connect.Request[s
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to write object: %v", err))
 	}
 
+	// Save metadata if provided
+	if len(req.Msg.Metadata) > 0 {
+		metaPath := objectPath + ".metadata.json"
+		metaData, _ := json.Marshal(req.Msg.Metadata)
+		os.WriteFile(metaPath, metaData, 0644)
+	}
+
 	return connect.NewResponse(&storagev1.UploadObjectResponse{}), nil
+}
+
+func (s *StorageServer) GetObjectMetadata(ctx context.Context, req *connect.Request[storagev1.GetObjectMetadataRequest]) (*connect.Response[storagev1.GetObjectMetadataResponse], error) {
+	slog.Info("GetObjectMetadata", "bucket", req.Msg.Bucket, "name", req.Msg.Name)
+	path := filepath.Join(s.baseDir, req.Msg.Bucket, req.Msg.Name)
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("object not found: %v", err))
+	}
+
+	metadata := make(map[string]string)
+	metaPath := path + ".metadata.json"
+	if data, err := os.ReadFile(metaPath); err == nil {
+		json.Unmarshal(data, &metadata)
+	}
+
+	return connect.NewResponse(&storagev1.GetObjectMetadataResponse{
+		Bucket:   req.Msg.Bucket,
+		Name:     req.Msg.Name,
+		Size:     info.Size(),
+		Metadata: metadata,
+	}), nil
+}
+
+func (s *StorageServer) ListObjects(ctx context.Context, req *connect.Request[storagev1.ListObjectsRequest]) (*connect.Response[storagev1.ListObjectsResponse], error) {
+	slog.Info("ListObjects", "bucket", req.Msg.Bucket, "prefix", req.Msg.Prefix)
+	bucketPath := filepath.Join(s.baseDir, req.Msg.Bucket)
+	
+	var names []string
+	filepath.Walk(bucketPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(path, ".metadata.json") {
+			return nil
+		}
+		
+		rel, _ := filepath.Rel(bucketPath, path)
+		if req.Msg.Prefix == "" || strings.HasPrefix(rel, req.Msg.Prefix) {
+			names = append(names, rel)
+		}
+		return nil
+	})
+
+	return connect.NewResponse(&storagev1.ListObjectsResponse{ObjectNames: names}), nil
 }
 
 func (s *StorageServer) GetDownloadURL(ctx context.Context, req *connect.Request[storagev1.GetDownloadURLRequest]) (*connect.Response[storagev1.GetDownloadURLResponse], error) {
@@ -63,7 +117,6 @@ func (s *StorageServer) GetDownloadURL(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("object not found: %s/%s", req.Msg.Bucket, req.Msg.Name))
 	}
 
-	// Mock URL for local workstation
 	url := fmt.Sprintf("file://%s", path)
 	return connect.NewResponse(&storagev1.GetDownloadURLResponse{Url: url}), nil
 }
@@ -75,7 +128,7 @@ func main() {
 	path, handler := storagev1connect.NewStorageServiceHandler(server)
 	mux.Handle(path, handler)
 
-	port := "8091" // From genesis.json
+	port := "8091"
 	slog.Info("StorageManager starting", "port", port)
 
 	srv := &http.Server{
