@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
-	storagev1 "OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1"
+	storagev1 "OlympusGCP-Storage/gen/v1/storage"
+	"OlympusGCP-Storage/10000-Autonomous-Actors/10700-Processing-Engines/10710-Reasoning-Inference/inference"
 	"connectrpc.com/connect"
 )
 
 func TestStorageServerAdvanced(t *testing.T) {
 	tempDir := t.TempDir()
-	server := NewStorageServer(tempDir)
+	server := inference.NewStorageServer(tempDir)
 	ctx := context.Background()
 
 	bucket := "meta-bucket"

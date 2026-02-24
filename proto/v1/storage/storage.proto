@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package storage.v1;
 
-option go_package = "OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1;storagev1";
+option go_package = "OlympusGCP-Storage/gen/v1/storage;storagev1";
 
 service StorageService {
   rpc CreateBucket (CreateBucketRequest) returns (CreateBucketResponse);

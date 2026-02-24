@@ -561,7 +561,7 @@ const file_storage_v1_storage_proto_rawDesc = "" +
 	"\fUploadObject\x12\x1f.storage.v1.UploadObjectRequest\x1a .storage.v1.UploadObjectResponse\x12`\n" +
 	"\x11GetObjectMetadata\x12$.storage.v1.GetObjectMetadataRequest\x1a%.storage.v1.GetObjectMetadataResponse\x12N\n" +
 	"\vListObjects\x12\x1e.storage.v1.ListObjectsRequest\x1a\x1f.storage.v1.ListObjectsResponse\x12W\n" +
-	"\x0eGetDownloadURL\x12!.storage.v1.GetDownloadURLRequest\x1a\".storage.v1.GetDownloadURLResponseBhZfOlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1;storagev1b\x06proto3"
+	"\x0eGetDownloadURL\x12!.storage.v1.GetDownloadURLRequest\x1a\".storage.v1.GetDownloadURLResponseBhZfOlympusGCP-Storage/gen/v1/storage;storagev1b\x06proto3"
 
 var (
 	file_storage_v1_storage_proto_rawDescOnce sync.Once

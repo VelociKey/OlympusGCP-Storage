@@ -8,8 +8,8 @@ import (
 	"connectrpc.com/connect"
 	"mcp-go/mcp"
 
-	"OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1/storagev1connect"
-	storagev1 "OlympusGCP-Storage/40000-Communication-Contracts/430-Protocol-Definitions/000-gen/storage/v1"
+	"OlympusGCP-Storage/gen/v1/storage/storagev1connect"
+	storagev1 "OlympusGCP-Storage/gen/v1/storage"
 	"Olympus2/90000-Enablement-Labs/P0000-pkg/000-mcp-bridge"
 )
 
