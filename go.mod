@@ -2,7 +2,10 @@ module OlympusGCP-Storage
 
 go 1.25.7
 
-require connectrpc.com/connect v1.19.1
+require (
+	connectrpc.com/connect v1.19.1
+	go.etcd.io/bbolt v1.4.0
+)
 
 require (
 	golang.org/x/net v0.50.0

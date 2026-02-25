@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"OlympusGCP-Storage/gen/v1/storage/storagev1connect"
@@ -16,6 +20,8 @@ import (
 func main() {
 	storageDir := "../../60000-Information-Storage/StorageData"
 	server := inference.NewStorageServer(storageDir)
+	defer server.Close()
+
 	mux := http.NewServeMux()
 	path, handler := storagev1connect.NewStorageServiceHandler(server)
 	mux.Handle(path, handler)
@@ -26,7 +32,7 @@ func main() {
 		fmt.Fprintf(w, `{"status":"HEALTHY", "workspace":"OlympusGCP-Storage", "time":"%s"}`, time.Now().Format(time.RFC3339))
 	})
 
-	port := "8091"
+	port := "8091" // From genesis.json
 	slog.Info("StorageManager starting", "port", port)
 
 	srv := &http.Server{
@@ -34,8 +40,19 @@ func main() {
 		Handler:           h2c.NewHandler(mux, &http2.Server{}),
 		ReadHeaderTimeout: 3 * time.Second,
 	}
-	err := srv.ListenAndServe()
-	if err != nil {
-		slog.Error("Server failed", "error", err)
-	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Server failed", "error", err)
+		}
+	}()
+
+	<-done
+	slog.Info("StorageManager shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	srv.Shutdown(ctx)
 }

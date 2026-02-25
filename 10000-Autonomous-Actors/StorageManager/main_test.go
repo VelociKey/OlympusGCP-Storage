@@ -12,6 +12,7 @@ import (
 func TestStorageServerAdvanced(t *testing.T) {
 	tempDir := t.TempDir()
 	server := inference.NewStorageServer(tempDir)
+	defer server.Close()
 	ctx := context.Background()
 
 	bucket := "meta-bucket"

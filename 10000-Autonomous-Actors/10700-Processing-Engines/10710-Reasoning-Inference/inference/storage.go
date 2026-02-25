@@ -11,17 +11,38 @@ import (
 
 	storagev1 "OlympusGCP-Storage/gen/v1/storage"
 	"connectrpc.com/connect"
+	"go.etcd.io/bbolt"
 )
 
 type StorageServer struct {
+	db      *bbolt.DB
 	baseDir string
 }
 
-func NewStorageServer(baseDir string) *StorageServer {
-	if err := os.MkdirAll(baseDir, 0755); err != nil {
-		slog.Error("Failed to create base storage dir", "error", err)
+const (
+	bucketMetadata = "metadata"
+)
+
+func NewStorageServer(storageDir string) *StorageServer {
+	os.MkdirAll(storageDir, 0755)
+	dbPath := filepath.Join(storageDir, "storage.db")
+	
+	db, err := bbolt.Open(dbPath, 0600, nil)
+	if err != nil {
+		slog.Error("Failed to open BoltDB", "path", dbPath, "error", err)
+		panic(err)
 	}
-	return &StorageServer{baseDir: baseDir}
+
+	err = db.Update(func(tx *bbolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(bucketMetadata))
+		return err
+	})
+	if err != nil { panic(err) }
+
+	return &StorageServer{
+		db:      db,
+		baseDir: storageDir,
+	}
 }
 
 func (s *StorageServer) CreateBucket(ctx context.Context, req *connect.Request[storagev1.CreateBucketRequest]) (*connect.Response[storagev1.CreateBucketResponse], error) {
@@ -35,6 +56,7 @@ func (s *StorageServer) CreateBucket(ctx context.Context, req *connect.Request[s
 
 func (s *StorageServer) UploadObject(ctx context.Context, req *connect.Request[storagev1.UploadObjectRequest]) (*connect.Response[storagev1.UploadObjectResponse], error) {
 	slog.Info("UploadObject", "bucket", req.Msg.Bucket, "name", req.Msg.Name)
+	
 	bucketPath := filepath.Join(s.baseDir, req.Msg.Bucket)
 	if _, err := os.Stat(bucketPath); os.IsNotExist(err) {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("bucket not found: %s", req.Msg.Bucket))
@@ -49,11 +71,20 @@ func (s *StorageServer) UploadObject(ctx context.Context, req *connect.Request[s
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to write object: %v", err))
 	}
 
-	// Save metadata if provided
-	if len(req.Msg.Metadata) > 0 {
-		metaPath := objectPath + ".metadata.json"
-		metaData, _ := json.Marshal(req.Msg.Metadata)
-		os.WriteFile(metaPath, metaData, 0644)
+	// Save metadata in BoltDB
+	err := s.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(bucketMetadata))
+		metaKey := req.Msg.Bucket + "/" + req.Msg.Name
+		
+		meta := make(map[string]string)
+		for k, v := range req.Msg.Metadata { meta[k] = v }
+		
+		data, _ := json.Marshal(meta)
+		return b.Put([]byte(metaKey), data)
+	})
+
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&storagev1.UploadObjectResponse{}), nil
@@ -61,6 +92,7 @@ func (s *StorageServer) UploadObject(ctx context.Context, req *connect.Request[s
 
 func (s *StorageServer) GetObjectMetadata(ctx context.Context, req *connect.Request[storagev1.GetObjectMetadataRequest]) (*connect.Response[storagev1.GetObjectMetadataResponse], error) {
 	slog.Info("GetObjectMetadata", "bucket", req.Msg.Bucket, "name", req.Msg.Name)
+	
 	path := filepath.Join(s.baseDir, req.Msg.Bucket, req.Msg.Name)
 	info, err := os.Stat(path)
 	if err != nil {
@@ -68,10 +100,15 @@ func (s *StorageServer) GetObjectMetadata(ctx context.Context, req *connect.Requ
 	}
 
 	metadata := make(map[string]string)
-	metaPath := path + ".metadata.json"
-	if data, err := os.ReadFile(metaPath); err == nil {
-		json.Unmarshal(data, &metadata)
-	}
+	err = s.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(bucketMetadata))
+		metaKey := req.Msg.Bucket + "/" + req.Msg.Name
+		data := b.Get([]byte(metaKey))
+		if data != nil {
+			return json.Unmarshal(data, &metadata)
+		}
+		return nil
+	})
 
 	return connect.NewResponse(&storagev1.GetObjectMetadataResponse{
 		Bucket:   req.Msg.Bucket,
@@ -83,17 +120,11 @@ func (s *StorageServer) GetObjectMetadata(ctx context.Context, req *connect.Requ
 
 func (s *StorageServer) ListObjects(ctx context.Context, req *connect.Request[storagev1.ListObjectsRequest]) (*connect.Response[storagev1.ListObjectsResponse], error) {
 	slog.Info("ListObjects", "bucket", req.Msg.Bucket, "prefix", req.Msg.Prefix)
-	bucketPath := filepath.Join(s.baseDir, req.Msg.Bucket)
 	
+	bucketPath := filepath.Join(s.baseDir, req.Msg.Bucket)
 	var names []string
 	filepath.Walk(bucketPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(path, ".metadata.json") {
-			return nil
-		}
-		
+		if err != nil || info.IsDir() { return nil }
 		rel, _ := filepath.Rel(bucketPath, path)
 		if req.Msg.Prefix == "" || strings.HasPrefix(rel, req.Msg.Prefix) {
 			names = append(names, rel)
@@ -113,4 +144,8 @@ func (s *StorageServer) GetDownloadURL(ctx context.Context, req *connect.Request
 
 	url := fmt.Sprintf("file://%s", path)
 	return connect.NewResponse(&storagev1.GetDownloadURLResponse{Url: url}), nil
+}
+
+func (s *StorageServer) Close() error {
+	return s.db.Close()
 }
