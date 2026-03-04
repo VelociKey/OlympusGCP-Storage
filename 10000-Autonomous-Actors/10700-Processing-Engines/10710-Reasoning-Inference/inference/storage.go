@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	storagev1 "OlympusGCP-Storage/gen/v1/storage"
+	storagev1 "olympus.fleet/00SDLC/OlympusGCP-Storage/gen/v1/storage"
 	"connectrpc.com/connect"
 	"go.etcd.io/bbolt"
 )

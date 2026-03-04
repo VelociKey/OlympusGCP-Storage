@@ -5,7 +5,7 @@
 package storagev1connect
 
 import (
-	storage "OlympusGCP-Storage/gen/v1/storage"
+	storage "olympus.fleet/00SDLC/OlympusGCP-Storage/gen/v1/storage"
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
@@ -29,7 +29,7 @@ const (
 // exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
-// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// google.protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (

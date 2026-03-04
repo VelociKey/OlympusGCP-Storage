@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"dagger/olympusgcp-storage/internal/dagger"
+	"olympus.fleet/00SDLC/OlympusForge/70000-Environmental-Harness/dagger/olympusgcp-storage/internal/dagger"
 )
 
 type OlympusGCPStorage struct{}
