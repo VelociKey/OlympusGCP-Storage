@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	storagev1 "olympus.fleet/00SDLC/OlympusGCP-Storage/gen/v1/storage"
+	storagev1 "olympus.fleet/00SDLC/OlympusGCP-Storage/40000-Communication-Contracts/40400-Protocol-Synthetics/connect-rpc/gen/v1/storage"
 	"olympus.fleet/00SDLC/OlympusGCP-Storage/10000-Autonomous-Actors/10700-Processing-Engines/10710-Reasoning-Inference/inference"
 	"connectrpc.com/connect"
 )

@@ -5,7 +5,7 @@
 package storagev1connect
 
 import (
-	storage "olympus.fleet/00SDLC/OlympusGCP-Storage/gen/v1/storage"
+	storage "olympus.fleet/00SDLC/OlympusGCP-Storage/40000-Communication-Contracts/40400-Protocol-Synthetics/connect-rpc/gen/v1/storage"
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
