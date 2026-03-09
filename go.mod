@@ -2,7 +2,7 @@ module olympus.fleet/00SDLC/OlympusGCP-Storage
 
 go 1.26.0
 
-require go.etcd.io/bbolt v1.4.0
+require go.etcd.io/bbolt v1.4.3
 
 require (
 	connectrpc.com/connect v1.19.1
@@ -28,42 +28,3 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
